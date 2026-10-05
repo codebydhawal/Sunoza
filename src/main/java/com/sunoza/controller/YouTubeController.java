@@ -71,7 +71,7 @@ public class YouTubeController {
         YouTubeVideoDetailsResponse details = youtubeService.getVideoDetails(videoId);
         if (details == null) return ResponseEntity.notFound().build();
 
-        String embedUrl = "https://www.youtube-nocookie.com/embed/" + videoId + "?playsinline=1&rel=0";
+        String embedUrl = "https://www.youtube-nocookie.com/embed/" + videoId + "?autoplay=1&playsinline=1&rel=0";
         return ResponseEntity.ok(new YouTubePlaybackResponse(
                 details.getVideoId(), details.getTitle(), details.getChannelTitle(), embedUrl
         ));
