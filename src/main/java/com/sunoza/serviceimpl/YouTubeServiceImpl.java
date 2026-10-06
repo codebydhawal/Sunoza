@@ -12,6 +12,8 @@ import com.sunoza.utils.YouTubeUtils;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.text.Normalizer;
+import java.util.stream.Collectors;
 
 @Service
 public class YouTubeServiceImpl implements YouTubeService {
@@ -47,6 +49,11 @@ public class YouTubeServiceImpl implements YouTubeService {
                                             request.getMaxResults()
                                     )
                                     .queryParam("key", apiKey);
+
+                            if (request.getChannelId() != null && !request.getChannelId().isBlank()) {
+                                uriBuilder.queryParam("channelId", request.getChannelId().trim());
+                                uriBuilder.queryParam("videoCategoryId", "10");
+                            }
 
                             /*
                              * Pagination
@@ -419,5 +426,47 @@ public class YouTubeServiceImpl implements YouTubeService {
         }
 
         return response;
+    }
+
+    @Override
+    public List<ArtistResponse> searchArtists(String query) {
+        String requestedArtist = normalizeArtistName(query);
+        YouTubeApiResponse response = restClient.get()
+                .uri(uriBuilder -> uriBuilder.path("/search")
+                        .queryParam("part", "snippet")
+                        .queryParam("q", query.trim() + " - Topic")
+                        .queryParam("type", "channel")
+                        .queryParam("maxResults", 20)
+                        .queryParam("key", apiKey)
+                        .build())
+                .retrieve()
+                .body(YouTubeApiResponse.class);
+        if (response == null || response.getItems() == null) return List.of();
+        return response.getItems().stream()
+                .filter(item -> item.getId() != null && item.getId().getChannelId() != null)
+                .filter(item -> item.getSnippet() != null && item.getSnippet().getTitle() != null)
+                .filter(item -> item.getSnippet().getTitle().toLowerCase(java.util.Locale.ROOT).endsWith(" - topic"))
+                .filter(item -> normalizeArtistName(item.getSnippet().getTitle()).equals(requestedArtist))
+                .map(item -> {
+                    YouTubeApiResponse.Snippet snippet = item.getSnippet();
+                    String thumbnail = null;
+                    if (snippet != null && snippet.getThumbnails() != null) {
+                        YouTubeApiResponse.Thumbnail image = snippet.getThumbnails().getHigh() != null
+                                ? snippet.getThumbnails().getHigh() : snippet.getThumbnails().getMedium();
+                        if (image != null) thumbnail = image.getUrl();
+                    }
+                    return new ArtistResponse(item.getId().getChannelId(),
+                            snippet == null ? "YouTube artist" : snippet.getTitle(), thumbnail);
+                })
+                .collect(Collectors.toList());
+    }
+
+    private String normalizeArtistName(String name) {
+        String withoutTopic = name.replaceFirst("(?i)\\s+-\\s+Topic$", "");
+        return Normalizer.normalize(withoutTopic, Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "")
+                .toLowerCase(java.util.Locale.ROOT)
+                .replaceAll("[^\\p{Alnum}]+", " ")
+                .trim();
     }
 }

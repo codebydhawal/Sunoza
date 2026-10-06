@@ -9,7 +9,8 @@ import org.springframework.data.repository.query.Param;
 
 public interface GuestSearchUsageRepository extends JpaRepository<GuestSearchUsage, Long> {
     @Modifying
-    @Query(value = "INSERT IGNORE INTO guest_search_usage (client_key, usage_date, search_count) VALUES (:clientKey, :usageDate, 0)", nativeQuery = true)
+    @Query(value = "INSERT INTO guest_search_usage (client_key, usage_date, search_count) "
+            + "VALUES (:clientKey, :usageDate, 0) ON CONFLICT (client_key, usage_date) DO NOTHING", nativeQuery = true)
     int createUsageRowIfMissing(@Param("clientKey") String clientKey, @Param("usageDate") LocalDate usageDate);
 
     @Modifying

@@ -37,6 +37,7 @@ public class YouTubeApiResponse {
         private String kind;
 
         private String videoId;
+        private String channelId;
     }
 
     @Data

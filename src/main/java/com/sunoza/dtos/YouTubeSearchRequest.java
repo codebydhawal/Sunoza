@@ -23,6 +23,8 @@ public class YouTubeSearchRequest {
 
     private String pageToken;
 
+    private String channelId;
+
     /*
      * Allowed:
      * relevance
